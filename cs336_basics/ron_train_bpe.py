@@ -1,0 +1,156 @@
+# Test with
+#    uv run pytest -s -vv -k "test_train_bpe"
+#    uv run cs336_basics/ron_train_bpe.py
+#    uv run pytest -s -vv  -k "test_train_bpe and not test_train_bpe_special_tokens and not test_train_bpe_speed"
+#
+# Performance test with
+#    uv pip install scalene
+ #   uv run scalene --help cs336_basics/ron_train_bpe.py 
+import os
+import regex as re
+
+def make_initial_vocab() -> dict[int, bytes]:
+    return {i: bytes([i]) for i in range(256)}
+
+def pretokenize(s):
+    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+    return re.findall(PAT, s)
+
+def string_as_byte_list(s:str)->list[int]:
+    return [b for b in s.encode('utf-8')]
+
+def string_as_byte_pairs(s:str) -> list[tuple[int,int]]:
+    sb = s.encode('utf-8')
+    return list(zip(sb,sb[1:]))
+
+def count_token_pairs(tokids: list[int]):
+    cnts = {}
+    for a,b in zip(tokids,tokids[1:]):
+        cnts[(a,b)] = cnts.get((a,b),0)+1
+    return cnts
+
+def tokids_to_bytestring(tokids: list[int],vocab):
+    return b"".join((vocab[x] for x in tokids))
+
+def tokids_to_pairs(tokids: list[int]):
+    return list(zip(tokids,tokids[1:]))
+
+def merge_tokids(old_tokids: list[int],old_pair: tuple[int,int],new_tokid:int):
+    new_tokids = []
+    idx = 0
+    while idx < len(old_tokids):
+        this_pair = (old_tokids[idx],old_tokids[idx+1]) if idx < len(old_tokids)-1 else None
+        if this_pair == old_pair:
+            #print("found match ",this_pair)
+            new_tokids.append(new_tokid)
+            idx += 1
+        else:
+            new_tokids.append(old_tokids[idx])
+        idx += 1
+    return new_tokids
+
+def get_best_pair(counts,vocab):
+    """
+    When computing merges, deterministically break ties in pair frequency 
+    by preferring the lexicographically greater pair. For example, if 
+    the pairs (“A”, “B”), (“A”, “C”), (“B”, “ZZ”), and (“BA”, “A”) all 
+    have the highest frequency, we’d merge (“BA”, “A”):
+    """
+    max_count = max(counts.values())
+    candidates = [k for k,v in counts.items() if v == max_count]
+    candidate_bytes = [(vocab[c[0]],vocab[c[1]]) for c in candidates]
+    last_lexographically = max(candidate_bytes)
+    candidate_index = candidate_bytes.index(last_lexographically)
+    best_candidate = candidates[candidate_index]
+    #if len(candidate_bytes) > 1:
+    #    print(f"candidates = {candidates}; picked {best_candidate}")
+    #print(f"max_count = {max_count}; candidates {candidates}", 
+    #      f"best = {tokids_to_bytestring(best_candidate,vocab)}")
+    return best_candidate
+
+
+def train_bpe(
+    input_path: str | os.PathLike,
+    vocab_size: int,
+    special_tokens: list[str],
+    **kwargs
+) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
+    
+    vocab = make_initial_vocab()
+    merges = []
+    new_vocab_idx = len(vocab)
+
+    for st in special_tokens:
+        vocab[new_vocab_idx] = st.encode('utf-8')
+        new_vocab_idx += 1
+
+    print("#######"*10)
+    print(" My Input Path is ",input_path, " vocab_size =",vocab_size, " special =", special_tokens)
+    with open(input_path) as f:
+        s = f.read()
+        print(f"len(s) = {len(s)}")
+
+    #vocab_size = 500
+
+    pretokens = pretokenize(s)
+    # print(pretokens[0:100])
+    # ['iron', ' cement', ' is', ' a', ' ready', ' for', ' use', ' paste', ...]
+    pretokids = [string_as_byte_list(pt) for pt in pretokens]
+
+    for mergenum in range(vocab_size-257):
+        counts = {}
+        for tid_batch in pretokids:
+            batch_counts = count_token_pairs(tid_batch)
+            for k,v in batch_counts.items():
+                counts[k] = counts.get(k,0) + v
+        #print("Counts of pairs = ",counts)
+        best_pair = get_best_pair(counts,vocab)
+        best_bytes = tokids_to_bytestring(best_pair,vocab)
+        vocab[new_vocab_idx] = best_bytes
+        this_merge = tuple([vocab[tid] for tid in best_pair])
+        merges.append(this_merge)
+        #print(f"merged {this_merge}")
+        pretokids = [merge_tokids(batch,best_pair,new_vocab_idx) for batch in pretokids]
+        new_vocab_idx += 1
+        #print(f"####### {pretokids}")
+
+    print("lv",len(vocab),"lm",len(merges))
+    return vocab,merges
+
+print(__name__)
+if __name__ == '__main__':
+    s = "The cat jumped over the dog and the fish and the turtle and the turkey. Viel Glück!"
+    print(s)
+    vocab = make_initial_vocab()
+    merges = []
+    new_vocab_idx = len(vocab)
+    pretokens = pretokenize(s)
+    pretokids = [string_as_byte_list(pt) for pt in pretokens]
+
+    print(f"####### {pretokids}")
+
+    for mergenum in range(2):
+        counts = {}
+        for tid_batch in pretokids:
+            batch_counts = count_token_pairs(tid_batch)
+            for k,v in batch_counts.items():
+                counts[k] = counts.get(k,0) + v
+        print("XXXX",counts)
+        best_pair = get_best_pair(counts,vocab)
+        best_bytes = tokids_to_bytestring(best_pair,vocab)
+        vocab[new_vocab_idx] = best_bytes
+        this_merge = tuple([vocab[tid] for tid in best_pair])
+        merges.append(this_merge)
+        print(f"merged {this_merge}")
+        pretokids = [merge_tokids(batch,best_pair,new_vocab_idx) for batch in pretokids]
+        print(f"####### {pretokids}")
+        
+
+            
+
+    corpus = '/home/ron/proj/cs336/assignment1-basics/tests/fixtures/corpus.en'
+    vocab_size = 500
+    special_tokens = ['<|endoftext|>']
+    train_bpe(corpus,vocab_size,special_tokens)
+
+
