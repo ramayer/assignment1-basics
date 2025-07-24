@@ -42,23 +42,32 @@ def tokids_to_bytestring(tokids: list[int],vocab):
 def tokids_to_pairs(tokids: list[int]):
     return list(zip(tokids,tokids[1:]))
 
-def merge_tokids(old_tokids: list[int],old_pair: tuple[int,int],new_tokid:int):
+def merge_tokids(old_tokids: list[int],old_pair: tuple[int,int],new_tokid:int) -> (list[int],Counter):
     a, b = old_pair
     if not a in old_tokids or not b in old_tokids:
-        return old_tokids
+        return (old_tokids,None)
     new_tokids = []
     idx = 0
     n = len(old_tokids)
+    changed = False
     while idx < n:
         oa = old_tokids[idx]
         if idx < n - 1 and oa == a and old_tokids[idx + 1] == b:
+            changed = True
             #print("found match ",this_pair)
             new_tokids.append(new_tokid)
             idx += 2
         else:
             new_tokids.append(oa)
             idx += 1
-    return new_tokids
+
+    if changed:
+        old_counts = Counter(count_token_pairs_cached(tuple(old_tokids)))
+        new_counts = Counter(count_token_pairs_cached(tuple(new_tokids)))
+        new_counts.subtract(old_counts)
+        return (new_tokids,new_counts)
+    else:
+        return (old_tokids,None)
 
 
 def get_best_pair(counts,vocab):
@@ -125,13 +134,15 @@ def train_bpe(
     # print(pretok_freqs)
     # {'iron': 2, ' cement': 3, ' is': 338, ' a': 480, ' ready': 4, ' for': 237,...}
     # print(f"len(pretokens) = {len(pretokens)}; len(pretok_freqs) = {len(pretok_freqs)}")
-    
+    counts = None
+    new_style_counts = None
     for mergenum in range(vocab_size-257):
-        counts = {}
-        pretok_batch_counts = [count_token_pairs_cached(tuple(tokids)) for tokids in pretok_ids]
-        for bc, wt in zip(pretok_batch_counts, pretok_weights):
-            for k, v in bc.items():
-                counts[k] = counts.get(k, 0) + v * wt
+        if not counts:
+            counts = Counter()
+            pretok_batch_counts = [count_token_pairs_cached(tuple(tokids)) for tokids in pretok_ids]
+            for bc, wt in zip(pretok_batch_counts, pretok_weights):
+                for k, v in bc.items():
+                    counts[k] += v * wt
 
         best_pair = get_best_pair(counts,vocab)
         best_bytes = tokids_to_bytestring(best_pair,vocab)
@@ -140,7 +151,14 @@ def train_bpe(
         this_merge = (vocab[best_pair[0]], vocab[best_pair[1]]) # slightly faster
         merges.append(this_merge)
         #print(f"merged {this_merge}")
-        pretok_ids = [merge_tokids(tokids, best_pair, new_vocab_idx) for tokids in pretok_ids]
+        merge_results = [merge_tokids(tokids, best_pair, new_vocab_idx) for tokids in pretok_ids]
+        pretok_ids = [newtoks for newtoks,deltas in merge_results]
+        deltas = [deltas for newtoks,deltas in merge_results]
+        for d,wt in zip(deltas,pretok_weights):
+            if d:
+                for k,v in d.items():
+                    counts[k] += v*wt
+              
         new_vocab_idx += 1
         #print(f"####### {pretokids}")
 
@@ -158,12 +176,14 @@ if __name__ == '__main__':
 
     print(f"####### {pretokids}")
 
+    counts = None
     for mergenum in range(2):
-        counts = {}
-        for tid_batch in pretokids:
-            batch_counts = count_token_pairs(tid_batch)
-            for k,v in batch_counts.items():
-                counts[k] = counts.get(k,0) + v
+        if not counts:
+            counts = {}
+            for tid_batch in pretokids:
+                batch_counts = count_token_pairs(tid_batch)
+                for k,v in batch_counts.items():
+                    counts[k] = counts.get(k,0) + v
         print("XXXX",counts)
         best_pair = get_best_pair(counts,vocab)
         best_bytes = tokids_to_bytestring(best_pair,vocab)
