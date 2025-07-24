@@ -43,10 +43,12 @@ def tokids_to_pairs(tokids: list[int]):
     return list(zip(tokids,tokids[1:]))
 
 def merge_tokids(old_tokids: list[int],old_pair: tuple[int,int],new_tokid:int):
+    a, b = old_pair
+    if not a in old_tokids or not b in old_tokids:
+        return old_tokids
     new_tokids = []
     idx = 0
     n = len(old_tokids)
-    a, b = old_pair
     while idx < n:
         oa = old_tokids[idx]
         if idx < n - 1 and oa == a and old_tokids[idx + 1] == b:
@@ -173,12 +175,14 @@ if __name__ == '__main__':
         print(f"####### {pretokids}")
         
 
-            
-
-    corpus = './tests/fixtures/tinystories_sample_5M.txt'
-    corpus = 'data/TinyStoriesV2-GPT4-valid.txt'
-    vocab_size = 500
-    special_tokens = ['<|endoftext|>']
-    train_bpe(corpus,vocab_size,special_tokens)
+    import time
+    t0 = time.time()
+    while time.time() - t0 < 20:
+        print(f"... {time.time() - t0}")
+        corpus = './tests/fixtures/tinystories_sample_5M.txt'
+        corpus = 'data/TinyStoriesV2-GPT4-valid.txt'
+        vocab_size = 500
+        special_tokens = ['<|endoftext|>']
+        train_bpe(corpus,vocab_size,special_tokens)
 
 
