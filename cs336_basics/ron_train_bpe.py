@@ -9,14 +9,14 @@
 import os
 import regex as re
 from collections import Counter
-from functools import lru_cache
+from functools import lru_cache, cache
 
 def make_initial_vocab() -> dict[int, bytes]:
     return {i: bytes([i]) for i in range(256)}
 
+_pretokenizer = re.compile(r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 def pretokenize(s):
-    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    return re.findall(PAT, s)
+    return _pretokenizer.findall(s)
 
 def string_as_byte_list(s:str)->list[int]:
     return [b for b in s.encode('utf-8')]
@@ -31,7 +31,8 @@ def count_token_pairs(tokids: list[int]):
         cnts[(a,b)] = cnts.get((a,b),0)+1
     return cnts
 
-@lru_cache(maxsize=10000)
+#@lru_cache(maxsize=10000)
+@cache
 def count_token_pairs_cached(tokids_tuple: tuple[int, ...]):
     return count_token_pairs(list(tokids_tuple))
 
@@ -108,9 +109,7 @@ def train_bpe(
     else:
         segments = [s]
 
-    pretokens = []
-    for segment in segments:
-        pretokens.extend(pretokenize(segment))
+    pretokens = [pt for segment in segments for pt in pretokenize(segment)]
 
     # print(pretokens[0:100])
     # ['iron', ' cement', ' is', ' a', ' ready', ' for', ' use', ' paste', ...]
@@ -119,7 +118,7 @@ def train_bpe(
     pretok_deduped = list(pretok_freqs.keys())
     pretok_weights = [pretok_freqs[pt] for pt in pretok_deduped]
     pretok_ids = [string_as_byte_list(pt) for pt in pretok_deduped]
-    n_pretok = len(pretok_deduped)
+    #n_pretok = len(pretok_deduped)
 
     # print(pretok_freqs)
     # {'iron': 2, ' cement': 3, ' is': 338, ' a': 480, ' ready': 4, ' for': 237,...}
@@ -135,7 +134,8 @@ def train_bpe(
         best_pair = get_best_pair(counts,vocab)
         best_bytes = tokids_to_bytestring(best_pair,vocab)
         vocab[new_vocab_idx] = best_bytes
-        this_merge = tuple([vocab[tid] for tid in best_pair])
+        #this_merge = tuple([vocab[tid] for tid in best_pair])
+        this_merge = (vocab[best_pair[0]], vocab[best_pair[1]]) # slightly faster
         merges.append(this_merge)
         #print(f"merged {this_merge}")
         pretok_ids = [merge_tokids(tokids, best_pair, new_vocab_idx) for tokids in pretok_ids]
@@ -145,7 +145,6 @@ def train_bpe(
     #print("lv",len(vocab),"lm",len(merges))
     return vocab,merges
 
-print(__name__)
 if __name__ == '__main__':
     s = "The cat jumped over the dog and the fish and the turtle and the turkey. Viel Glück!"
     print(s)
@@ -177,6 +176,7 @@ if __name__ == '__main__':
             
 
     corpus = './tests/fixtures/tinystories_sample_5M.txt'
+    corpus = 'data/TinyStoriesV2-GPT4-valid.txt'
     vocab_size = 500
     special_tokens = ['<|endoftext|>']
     train_bpe(corpus,vocab_size,special_tokens)
