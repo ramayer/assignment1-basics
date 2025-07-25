@@ -8,7 +8,9 @@ class RonBPETokenizer:
         self.vocab = vocab
         self.bytes_to_tokids = {v: k for k, v in vocab.items()}
         self.merges = merges
+        #print(f"merges = {self.merges[0:100]}")
         self.special_tokens = special_tokens
+        self.int_merges = [(self.bytes_to_tokids[a], self.bytes_to_tokids[b]) for a, b in merges]
 
     def pretokenize(self, s: str) -> list[str]:
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
@@ -30,14 +32,25 @@ class RonBPETokenizer:
             btk = self.bytes_to_tokids
             for pss in ps:
                 tokids = [btk[bytes([b])] for b in pss.encode('utf-8')]
+                for m in self.int_merges:
+                    for i in range(len(tokids) - 1):
+                        if i >= len(tokids) - 1:
+                            break
+                        pair = (tokids[i], tokids[i + 1])
+                        if m[0] == pair[0] and m[1] == pair[1]:
+                            #print(f"Found merge pair: {pair} {(self.vocab[pair[0]], self.vocab[pair[1]])} in {pss} at index {i}")
+                            new_id = self.bytes_to_tokids[self.vocab[m[0]] + self.vocab[m[1]]]
+                            tokids[i] = new_id
+                            del tokids[i + 1]
+
                 encoded_tokens.extend(tokids)
+
         return encoded_tokens
 
-    def encode_iterable(self, iterable: list[str]) -> list[int]:
-        encoded_tokens = []
+    def encode_iterable(self, iterable: list[str]) -> 'Generator[int, None, None]':
         for text in iterable:
-            encoded_tokens.extend(self.encode(text))
-        return encoded_tokens
+            for token in self.encode(text):
+                yield token
     
     def decode(self, tokens: list[int]) -> str:
         # Implement decoding logic here
