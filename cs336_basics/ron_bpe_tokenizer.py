@@ -1,4 +1,5 @@
 import regex as re
+from functools import lru_cache
 
 class RonBPETokenizer:
     def __init__(self, 
@@ -15,6 +16,24 @@ class RonBPETokenizer:
     def pretokenize(self, s: str) -> list[str]:
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         return re.findall(PAT, s)
+    
+    # Even a small @lru_cache of 200 brings tiktoken tests from 17 seconds to 7 seconds
+    @lru_cache(maxsize=20000)
+    def encode_pretokenized_string(self,pss: str) -> list[int]:
+        btk = self.bytes_to_tokids
+        tokids = [btk[bytes([b])] for b in pss.encode('utf-8')]
+        for m in self.int_merges:
+            for i in range(len(tokids) - 1):
+                if i >= len(tokids) - 1:
+                    break
+                pair = (tokids[i], tokids[i + 1])
+                if m[0] == pair[0] and m[1] == pair[1]:
+                    #print(f"Found merge pair: {pair} {(self.vocab[pair[0]], self.vocab[pair[1]])} in {pss} at index {i}")
+                    new_id = self.bytes_to_tokids[self.vocab[m[0]] + self.vocab[m[1]]]
+                    tokids[i] = new_id
+                    del tokids[i + 1]
+        return tokids
+
 
     def encode(self, text: str) -> list[int]:
         if self.special_tokens:
@@ -29,19 +48,23 @@ class RonBPETokenizer:
                 encoded_tokens.append(self.bytes_to_tokids[s.encode('utf-8')])
                 continue
             ps = self.pretokenize(s)
-            btk = self.bytes_to_tokids
+            #btk = self.bytes_to_tokids
             for pss in ps:
-                tokids = [btk[bytes([b])] for b in pss.encode('utf-8')]
-                for m in self.int_merges:
-                    for i in range(len(tokids) - 1):
-                        if i >= len(tokids) - 1:
-                            break
-                        pair = (tokids[i], tokids[i + 1])
-                        if m[0] == pair[0] and m[1] == pair[1]:
-                            #print(f"Found merge pair: {pair} {(self.vocab[pair[0]], self.vocab[pair[1]])} in {pss} at index {i}")
-                            new_id = self.bytes_to_tokids[self.vocab[m[0]] + self.vocab[m[1]]]
-                            tokids[i] = new_id
-                            del tokids[i + 1]
+                # tokids = [btk[bytes([b])] for b in pss.encode('utf-8')]
+                # for m in self.int_merges:
+                #     if not m[0] in tokids and m[1] in tokids:
+                #         continue
+                #     for i in range(len(tokids) - 1):
+                #         if i >= len(tokids) - 1:
+                #             break
+                #         pair = (tokids[i], tokids[i + 1])
+                #         if m[0] == pair[0] and m[1] == pair[1]:
+                #             #print(f"Found merge pair: {pair} {(self.vocab[pair[0]], self.vocab[pair[1]])} in {pss} at index {i}")
+                #             new_id = self.bytes_to_tokids[self.vocab[m[0]] + self.vocab[m[1]]]
+                #             tokids[i] = new_id
+                #             del tokids[i + 1]
+                tokids = self.encode_pretokenized_string(pss)
+
 
                 encoded_tokens.extend(tokids)
 
