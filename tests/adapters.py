@@ -12,6 +12,7 @@ from torch import Tensor
 import cs336_basics.ron_bpe_tokenizer as ron_bpe_tokenizer
 from cs336_basics.ron_train_bpe import train_bpe
 import cs336_basics.ron_embedding as ron_embedding
+import cs336_basics.ron_linear as ron_linear
 
 
 def run_linear(
@@ -32,8 +33,11 @@ def run_linear(
     Returns:
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
-
-    raise NotImplementedError
+    # print("run_linear: ",d_in,d_out,weights.shape, in_features.shape)
+    l = ron_linear.Linear(d_in, d_out)
+    l.load_state_dict({"weights":weights})
+    return l(in_features)
+    #raise NotImplementedError
 
 
 def run_embedding(
@@ -54,11 +58,11 @@ def run_embedding(
     Returns:
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
-    e = ron_embedding.Embedding(vocab_size,d_model,winput=weights)
+    e = ron_embedding.Embedding(vocab_size, d_model)
+    e.load_state_dict({"weights":weights})
     tokids = e(token_ids)
     return tokids
-
-    raise NotImplementedError
+    #raise NotImplementedError
 
 
 def run_swiglu(

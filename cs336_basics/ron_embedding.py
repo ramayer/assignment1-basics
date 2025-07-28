@@ -41,13 +41,12 @@ class Embedding(torch.nn.Module):
                  ):
         super().__init__()
         if winput is not None:
-            # wut's that undocumented "weights" parameter in the adapter?!?
             assert(winput.shape == torch.Size([num_embeddings, embedding_dim]))
             w = winput
         else:
             w = torch.empty(num_embeddings, embedding_dim, device=device, dtype=dtype)
             w = nn.init.trunc_normal_(w, std=1.0, a=-3.0, b=3.0)
-        self.weight = nn.Parameter(w)
+        self.weights = nn.Parameter(w)
 
     def forward(self, token_ids: Int[Tensor, " ..."]) -> Float[Tensor, " ... d_model"]:
-        return self.weight[token_ids, :]
+        return self.weights[token_ids, :]
