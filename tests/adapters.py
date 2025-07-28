@@ -11,6 +11,7 @@ from torch import Tensor
 
 import cs336_basics.ron_bpe_tokenizer as ron_bpe_tokenizer
 from cs336_basics.ron_train_bpe import train_bpe
+import cs336_basics.ron_embedding as ron_embedding
 
 
 def run_linear(
@@ -53,6 +54,9 @@ def run_embedding(
     Returns:
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
+    e = ron_embedding.Embedding(vocab_size,d_model,winput=weights)
+    tokids = e(token_ids)
+    return tokids
 
     raise NotImplementedError
 
@@ -303,7 +307,7 @@ def run_transformer_lm(
         num_heads (int): Number of heads to use in multi-headed attention. `d_model` must be
             evenly divisible by `num_heads`.
         d_ff (int): Dimensionality of the feed-forward inner layer (section 3.3).
-        rope_theta (float): The RoPE $\Theta$ parameter.
+        rope_theta (float): The RoPE $\\Theta$ parameter.
         weights (dict[str, Tensor]): 
             State dict of our reference implementation. {num_layers} refers to an
             integer between `0` and `num_layers - 1` (the layer index).
