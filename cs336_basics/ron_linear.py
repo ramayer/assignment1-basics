@@ -43,7 +43,6 @@ class Linear(torch.nn.Module):
                  out_features:int,
                  device:torch.device|None=None,
                  dtype:torch.dtype|None=None,
-                 winput=None
                  ):
         super().__init__()
         std = math.sqrt(2 / (in_features + out_features))
@@ -51,8 +50,15 @@ class Linear(torch.nn.Module):
         w = nn.init.trunc_normal_(w, std=std, a=-3.0*std, b=3.0*std)
         self.weights = nn.Parameter(w)
 
-    def forward(self, token_ids: Int[Tensor, " ..."]) -> Float[Tensor, " ... d_model"]:
-        x = token_ids
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+            ## These all seem identical?
+            y = einx.dot("batch sequence d_in, d_out d_in -> batch sequence d_out", x, w)
+            y = einx.dot("... d_in, d_out d_in -> ... d_out", x, w)
+            y = einx.dot("... [d_in->d_out]", x, w.T)
+            y = x @ w.T
+            y = torch.einsum("bsd,od -> bso", x, w)
+        """
         w = self.weights
-        y = einx.dot("batch sequence d_in, d_out d_in -> batch sequence d_out", x, w)
+        y = einx.dot("... d_in, d_out d_in -> ... d_out", x, w)
         return y
