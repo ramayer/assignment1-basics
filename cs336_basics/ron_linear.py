@@ -58,6 +58,12 @@ class Linear(torch.nn.Module):
             y = einx.dot("... [d_in->d_out]", x, w.T)
             y = x @ w.T
             y = torch.einsum("bsd,od -> bso", x, w)
+
+
+            assert torch.allclose(
+                torch.einsum("bsd,od -> bso", x, w),
+                einx.dot("batch sequence d_in, d_out d_in -> batch sequence d_out", x, w)
+            )
         """
         w = self.weights
         y = einx.dot("... d_in, d_out d_in -> ... d_out", x, w)

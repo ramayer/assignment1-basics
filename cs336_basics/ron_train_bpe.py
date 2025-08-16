@@ -42,7 +42,7 @@ def tokids_to_bytestring(tokids: list[int],vocab):
 def tokids_to_pairs(tokids: list[int]):
     return list(zip(tokids,tokids[1:]))
 
-def merge_tokids(old_tokids: list[int],old_pair: tuple[int,int],new_tokid:int) -> (list[int],Counter):
+def merge_tokids(old_tokids: list[int],old_pair: tuple[int,int],new_tokid:int) -> tuple[list[int],Counter|None]:
     a, b = old_pair
     if not a in old_tokids or not b in old_tokids:
         return (old_tokids,None)
@@ -131,7 +131,7 @@ def train_bpe(
     pretok_ids = [string_as_byte_list(pt) for pt in pretok_deduped]
     #n_pretok = len(pretok_deduped)
 
-    # print(pretok_freqs)
+    print(pretok_freqs)
     # {'iron': 2, ' cement': 3, ' is': 338, ' a': 480, ' ready': 4, ' for': 237,...}
     # print(f"len(pretokens) = {len(pretokens)}; len(pretok_freqs) = {len(pretok_freqs)}")
     counts = None

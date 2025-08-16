@@ -1,5 +1,6 @@
 import regex as re
 from functools import lru_cache
+from typing import Generator
 
 class RonBPETokenizer:
     def __init__(self, 
@@ -12,6 +13,12 @@ class RonBPETokenizer:
         #print(f"merges = {self.merges[0:100]}")
         self.special_tokens = special_tokens
         self.int_merges = [(self.bytes_to_tokids[a], self.bytes_to_tokids[b]) for a, b in merges]
+
+        if self.special_tokens:
+            # sort by length to greedily match longer tokens first
+            sorted_tokens = sorted(self.special_tokens, key=len, reverse=True)
+            pattern = "|".join(re.escape(st) for st in sorted_tokens)
+            self.special_token_re = re.compile(f"({pattern})")
 
     def pretokenize(self, s: str) -> list[str]:
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
@@ -37,8 +44,10 @@ class RonBPETokenizer:
 
     def encode(self, text: str) -> list[int]:
         if self.special_tokens:
-            pattern = "|".join(re.escape(st) for st in self.special_tokens)
-            segments = re.split(f'({pattern})', text)
+            #sorted_tokens = sorted(self.special_tokens, key=len, reverse=True)
+            #pattern = "|".join(re.escape(st) for st in sorted_tokens)
+            #segments = re.split(f'({pattern})', text)
+            segments = re.split(self.special_token_re, text)
         else:
             segments = [text]
         #print(f"Segments after splitting: {segments}")
