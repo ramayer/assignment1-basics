@@ -14,7 +14,7 @@ from cs336_basics.ron_train_bpe import train_bpe
 import cs336_basics.ron_embedding as ron_embedding
 import cs336_basics.ron_linear as ron_linear
 import cs336_basics.ron_rmsnorm as ron_rmsnorm
-
+import cs336_basics.ron_swiglu as ron_swiglu
 
 def run_linear(
     d_in: int,
@@ -95,6 +95,14 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
+
+    s = ron_swiglu.SwiGLU(d_model,d_ff)
+    s.load_state_dict({
+        "w1.weights":w1_weight,
+        "w2.weights":w2_weight,
+        "w3.weights":w3_weight,
+        })
+    return s(in_features)
     raise NotImplementedError
 
 
