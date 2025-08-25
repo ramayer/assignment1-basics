@@ -18,6 +18,7 @@ import cs336_basics.ron_swiglu as ron_swiglu
 import cs336_basics.ron_rope as ron_rope
 import cs336_basics.ron_softmax as ron_softmax
 import cs336_basics.ron_scaled_dot_product_attention as ron_scaled_dot_product_attention
+import cs336_basics.ron_multihead_self_attention as ron_multihead_self_attention
 
 def run_linear(
     d_in: int,
@@ -166,6 +167,17 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
+    msa = ron_multihead_self_attention.MultiheadSelfAttention(
+        d_model=d_model,
+        num_heads=num_heads,
+    )
+    msa.load_state_dict({
+        "q_proj.weights":q_proj_weight,
+        "k_proj.weights":k_proj_weight,
+        "v_proj.weights":v_proj_weight,
+        "o_proj.weights":o_proj_weight,
+        })
+    return msa(in_features)
     raise NotImplementedError
 
 
@@ -206,6 +218,7 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
+
     raise NotImplementedError
 
 
