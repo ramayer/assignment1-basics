@@ -15,6 +15,7 @@ import cs336_basics.ron_embedding as ron_embedding
 import cs336_basics.ron_linear as ron_linear
 import cs336_basics.ron_rmsnorm as ron_rmsnorm
 import cs336_basics.ron_swiglu as ron_swiglu
+import cs336_basics.ron_rope as ron_rope
 
 def run_linear(
     d_in: int,
@@ -220,6 +221,8 @@ def run_rope(
     Returns:
         Float[Tensor, " ... sequence_length d_k"]: Tensor with RoPEd input.
     """
+    rope = ron_rope.RoPE(theta,d_k,max_seq_len)
+    return rope.forward(in_query_or_key,token_positions)
     raise NotImplementedError
 
 
