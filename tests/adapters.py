@@ -16,6 +16,7 @@ import cs336_basics.ron_linear as ron_linear
 import cs336_basics.ron_rmsnorm as ron_rmsnorm
 import cs336_basics.ron_swiglu as ron_swiglu
 import cs336_basics.ron_rope as ron_rope
+import cs336_basics.ron_softmax as ron_softmax
 
 def run_linear(
     d_in: int,
@@ -457,6 +458,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
+    return ron_softmax.softmax(in_features,dim)
     raise NotImplementedError
 
 
