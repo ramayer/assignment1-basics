@@ -17,6 +17,7 @@ import cs336_basics.ron_rmsnorm as ron_rmsnorm
 import cs336_basics.ron_swiglu as ron_swiglu
 import cs336_basics.ron_rope as ron_rope
 import cs336_basics.ron_softmax as ron_softmax
+import cs336_basics.ron_scaled_dot_product_attention as ron_scaled_dot_product_attention
 
 def run_linear(
     d_in: int,
@@ -126,6 +127,11 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
+    result = ron_scaled_dot_product_attention.scaled_dot_product_attention(
+        Q,K,V,mask
+    )
+    isinstance(result, torch.Tensor) #make vscode happy
+    return result
     raise NotImplementedError
 
 
