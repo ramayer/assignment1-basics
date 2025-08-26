@@ -19,6 +19,7 @@ import cs336_basics.ron_rope as ron_rope
 import cs336_basics.ron_softmax as ron_softmax
 import cs336_basics.ron_scaled_dot_product_attention as ron_scaled_dot_product_attention
 import cs336_basics.ron_multihead_self_attention as ron_multihead_self_attention
+import cs336_basics.ron_causal_multihead_self_attention_with_rope as ron_causal_multihead_self_attention_with_rope
 
 def run_linear(
     d_in: int,
@@ -218,7 +219,19 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-
+    cmsar = ron_causal_multihead_self_attention_with_rope.CausalMultiheadSelfAttentionWithRope(
+        d_model=d_model,
+        num_heads=num_heads,
+        theta=theta,
+        max_seq_len=max_seq_len,
+    )
+    cmsar.load_state_dict({
+        "q_proj.weights":q_proj_weight,
+        "k_proj.weights":k_proj_weight,
+        "v_proj.weights":v_proj_weight,
+        "o_proj.weights":o_proj_weight,
+        })
+    return cmsar(in_features, token_positions=token_positions)
     raise NotImplementedError
 
 

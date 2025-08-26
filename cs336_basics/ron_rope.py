@@ -87,7 +87,8 @@ class RoPE(torch.nn.Module):
               "new_odd_x ", new_odd_x.shape, ", "
               )
         x_paired = torch.stack([new_even_x, new_odd_x], dim=-1) # (batch,seq_len,d_k//2,2)
-        result = einx.rearrange("batch seq d2 p -> batch seq (d2 p)",x_paired)
+        # note, the multihead test requires "..." instead of "b" because the heads are also a batchlike dimension
+        result = einx.rearrange("... seq d2 p -> ... seq (d2 p)",x_paired)  
 
         assert isinstance(result, torch.Tensor) # just to make VS Code not complain
         return result
