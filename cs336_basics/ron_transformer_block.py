@@ -12,6 +12,20 @@ from .ron_swiglu import SwiGLU
 
 class TransformerBlock(nn.Module):
     """
+
+        Implement the pre-norm Transformer block as described in §3.5 and illustrated in Figure 2. Your
+        Transformer block should accept (at least) the following parameters.
+
+        d_model: int Dimensionality of the Transformer block inputs.
+        num_heads: int Number of heads to use in multi-head self-attention.
+        d_ff: int Dimensionality of the position-wise feed-forward inner layer.
+
+        To test your implementation, implement the adapter [adapters.run_transformer_block]. Then
+        run uv run pytest -k test_transformer_block to test your implementation.
+        Deliverable: Transformer block code that passes the provided tests.
+
+
+
     Let’s begin by assembling the Transformer block (it will be helpful to refer
     back to Figure 2). A Transformer block contains two ‘sublayers’, one for the
     multihead self attention, and another for the feed-forward network. In each
@@ -90,22 +104,26 @@ class TransformerBlock(nn.Module):
                  theta: float,
                  ):
         super().__init__()
-        self.cmsawr = CausalMultiheadSelfAttentionWithRope(d_model, num_heads, max_seq_len, theta)
-        "ln1.weight .. Weights of affine transform for the first RMSNorm applied in the"
+        self.cmsawr = CausalMultiheadSelfAttentionWithRope(d_model, num_heads, theta, max_seq_len)
         self.ln1 = RMSNorm(d_model)
         self.ln2 = RMSNorm(d_model)
         self.ffn = SwiGLU(d_model, d_ff)
 
 
     def forward(self, x: Float[Tensor, "batch sequence_length d_model"]):
-
         """
-        To be concrete, the first half (the first ‘sub-layer’) of the Transformer 
-        block should be implementing the following set of updates to 
-            produce an output y from an input x,
-
-        y = x + MultiHeadSelfAttention(RMSNorm(x)). (15)
+            To be concrete, the first half (the first ‘sub-layer’) of the Transformer 
+            block should be implementing the following set of updates to 
+            produce an output y from an input x:
+            y = x + MultiHeadSelfAttention(RMSNorm(x)). (15)
         """
         y = x + self.cmsawr.forward(self.ln1(x), torch.arange(x.shape[1]))
+        """
+            Note -- in MoE architectures, only the following expression would change.
+            https://raw.githubusercontent.com/stanford-cs336/spring2025-lectures/master/nonexecutable/2025%20Lecture%204%20-%20MoEs.pdf
+            "What’s a MoE?
+             Replace big feedforward with (many) big feedforward networks and a selector layer"
+            That's the feedforward network they're talking about.
+        """
         z = self.ffn(self.ln2(y))
         return y + z
