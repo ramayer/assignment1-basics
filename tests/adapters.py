@@ -20,7 +20,7 @@ import cs336_basics.ron_softmax as ron_softmax
 import cs336_basics.ron_scaled_dot_product_attention as ron_scaled_dot_product_attention
 import cs336_basics.ron_multihead_self_attention as ron_multihead_self_attention
 import cs336_basics.ron_causal_multihead_self_attention_with_rope as ron_causal_multihead_self_attention_with_rope
-
+import cs336_basics.ron_transformer_lm as ron_transformer_lm
 def run_linear(
     d_in: int,
     d_out: int,
@@ -351,6 +351,52 @@ def run_transformer_block(
     return tb(in_features)
     raise NotImplementedError
 
+## Ron - My paramter names differed from thiers :( 
+import re
+from collections import OrderedDict
+def translate_state_dict(state_dict):
+    new_state = OrderedDict()
+    for k, v in state_dict.items():
+        # Embeddings
+        if k == "token_embeddings.weight":
+            new_state["embed.weights"] = v
+
+        # Attention projections
+        elif m := re.match(r"layers\.(\d+)\.attn\.q_proj\.weight", k):
+            new_state[f"xform.{m[1]}.cmsawr.q_proj.weights"] = v
+        elif m := re.match(r"layers\.(\d+)\.attn\.k_proj\.weight", k):
+            new_state[f"xform.{m[1]}.cmsawr.k_proj.weights"] = v
+        elif m := re.match(r"layers\.(\d+)\.attn\.v_proj\.weight", k):
+            new_state[f"xform.{m[1]}.cmsawr.v_proj.weights"] = v
+        elif m := re.match(r"layers\.(\d+)\.attn\.output_proj\.weight", k):
+            new_state[f"xform.{m[1]}.cmsawr.o_proj.weights"] = v
+
+        # FFN
+        elif m := re.match(r"layers\.(\d+)\.ffn\.w1\.weight", k):
+            new_state[f"xform.{m[1]}.ffn.w1.weights"] = v
+        elif m := re.match(r"layers\.(\d+)\.ffn\.w2\.weight", k):
+            new_state[f"xform.{m[1]}.ffn.w2.weights"] = v
+        elif m := re.match(r"layers\.(\d+)\.ffn\.w3\.weight", k):
+            new_state[f"xform.{m[1]}.ffn.w3.weights"] = v
+
+        # Norms
+        elif m := re.match(r"layers\.(\d+)\.ln1\.weight", k):
+            new_state[f"xform.{m[1]}.ln1.g"] = v
+        elif m := re.match(r"layers\.(\d+)\.ln2\.weight", k):
+            new_state[f"xform.{m[1]}.ln2.g"] = v
+        elif k == "ln_final.weight":
+            new_state["norm.g"] = v
+
+        # LM head
+        elif k == "lm_head.weight":
+            new_state["head.weights"] = v
+
+        else:
+            print("⚠️ Unmapped key:", k)
+
+    return new_state
+
+
 
 def run_transformer_lm(
     vocab_size: int,
@@ -431,6 +477,18 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
+    tlm = ron_transformer_lm.TransformerLM(
+        d_model=d_model,
+        num_heads=num_heads,
+        d_ff = d_ff,
+        max_seq_len=context_length,
+        theta=rope_theta,
+        vocab_size=vocab_size,
+        context_length=context_length,
+        num_layers=num_layers
+    )
+    tlm.load_state_dict(translate_state_dict(weights))
+    return tlm(in_indices)
     raise NotImplementedError
 
 
