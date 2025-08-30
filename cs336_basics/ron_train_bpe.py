@@ -191,7 +191,10 @@ if __name__ == '__main__':
         this_merge = tuple([vocab[tid] for tid in best_pair])
         merges.append(this_merge)
         print(f"merged {this_merge}")
-        pretokids = [merge_tokids(batch,best_pair,new_vocab_idx) for batch in pretokids]
+        #pretokids = [merge_tokids(batch,best_pair,new_vocab_idx) for batch in pretokids]
+        merge_results = [merge_tokids(tokids, best_pair, new_vocab_idx) for tokids in pretokids]
+        pretokids = [newtoks for newtoks,deltas in merge_results]
+        deltas = [deltas for newtoks,deltas in merge_results]
         print(f"####### {pretokids}")
         
 

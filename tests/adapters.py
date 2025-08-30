@@ -586,6 +586,8 @@ def run_cross_entropy(inputs: Float[Tensor, " batch_size vocab_size"], targets: 
     Returns:
         Float[Tensor, ""]: The average cross-entropy loss across examples.
     """
+    from cs336_basics.ron_cross_entropy import cross_entropy
+    return cross_entropy(inputs,targets)
     raise NotImplementedError
 
 
