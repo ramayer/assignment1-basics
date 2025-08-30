@@ -131,7 +131,7 @@ def train_bpe(
     pretok_ids = [string_as_byte_list(pt) for pt in pretok_deduped]
     #n_pretok = len(pretok_deduped)
 
-    print(pretok_freqs)
+    #print(pretok_freqs)
     # {'iron': 2, ' cement': 3, ' is': 338, ' a': 480, ' ready': 4, ' for': 237,...}
     # print(f"len(pretokens) = {len(pretokens)}; len(pretok_freqs) = {len(pretok_freqs)}")
     counts = None

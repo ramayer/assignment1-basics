@@ -52,7 +52,7 @@ class TransformerLM(nn.Module):
         self.head = Linear(d_model,vocab_size)
 
     def forward(self,x):
-        print("in TransformerLLM x is ",x)
+        #print("in TransformerLLM x is ",x)
         x = self.embed(x)
         for xf in self.xform:
             x = xf(x)
