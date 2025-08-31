@@ -21,6 +21,8 @@ import cs336_basics.ron_scaled_dot_product_attention as ron_scaled_dot_product_a
 import cs336_basics.ron_multihead_self_attention as ron_multihead_self_attention
 import cs336_basics.ron_causal_multihead_self_attention_with_rope as ron_causal_multihead_self_attention_with_rope
 import cs336_basics.ron_transformer_lm as ron_transformer_lm
+import cs336_basics.ron_adamw_optimizer as ron_adamw_optimizer
+
 def run_linear(
     d_in: int,
     d_out: int,
@@ -607,6 +609,7 @@ def get_adamw_cls() -> type[torch.optim.Optimizer]:
     """
     Returns a torch.optim.Optimizer that implements AdamW.
     """
+    return ron_adamw_optimizer.AdamW
     raise NotImplementedError
 
 
