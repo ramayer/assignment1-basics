@@ -32,8 +32,8 @@ class CausalMultiheadSelfAttentionWithRope(torch.nn.Module):
         self.o_proj = Linear(num_heads * dv, d_model)
         self.rope = RoPE(d_k = dk, max_seq_len=max_seq_len, theta=theta)
 
-    def make_a_triangle_mask(self,sequence_length:int):
-        idx = torch.arange(sequence_length)
+    def make_a_triangle_mask(self,sequence_length:int, device):
+        idx = torch.arange(sequence_length,device=device)
         triangle_mask = idx[:, None] >= idx[None, :]     # [L, L], boolean
         return triangle_mask
 
@@ -56,7 +56,8 @@ class CausalMultiheadSelfAttentionWithRope(torch.nn.Module):
         k = self.rope(k,token_positions=mutlihead_token_positions)
         assert isinstance(v,torch.Tensor) # make vscode happier
 
-        triangle_mask = self.make_a_triangle_mask(sequence_length=x.shape[-2])
+        triangle_mask = self.make_a_triangle_mask(sequence_length=x.shape[-2],device=x.device)
+
         attn_output = scaled_dot_product_attention(k=k, q=q, v=v, mask=triangle_mask)
 
         attn_output = einx.rearrange("... heads seq d_v -> ... seq (heads d_v)",attn_output)
