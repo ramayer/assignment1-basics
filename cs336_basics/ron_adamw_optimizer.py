@@ -44,9 +44,11 @@ class AdamW(torch.optim.Optimizer):
             eps   = group["eps"]
             
             for p in group["params"]:
-                # these parts are identical to SGD
+                # the first parts are identical to the SGD exmaple
                 if p.grad is None:
                     continue
+
+                # g ← ∇θ ℓ(θ; Bt ) (Compute the gradient of the loss at the current time step)
                 grad = p.grad.data # Get the gradient of loss with respect to p.
                 state = self.state[p] # Get state associated with p.
                 #print("state ",state)
@@ -57,8 +59,6 @@ class AdamW(torch.optim.Optimizer):
                 ## From the assignment
                 # m ← 0 (Initial value of the first moment vector; same shape as θ)
                 # v ← 0 (Initial value of the second moment vector; same shape as θ)
-                #print("p data shape ",p.data.shape)
-                #print("p grad shape ",p.grad.data.shape)
                 m = state.get("m",torch.zeros_like(p.data))
                 v = state.get("v",torch.zeros_like(p.data))
 
@@ -66,8 +66,6 @@ class AdamW(torch.optim.Optimizer):
                 new_m = b1 * m + grad*(1 - b1)
                 # v ← β2 v√+ (1 − β2 )g^2 (Update the second moment estimate)
                 new_v = b2 * v + grad*grad*(1 - b2)
-                state['m'] = new_m
-                state['v'] = new_v
 
                 # αt ← α sqrt(1-(β1)^t) / (1-β1^t)
                 at = lr * math.sqrt(1-b2**t) / (1-b1**t)
@@ -77,22 +75,9 @@ class AdamW(torch.optim.Optimizer):
 
                 # θ ← θ − αλθ (Apply weight decay )
                 p.data -= lr * wd * p.data
-
-
-                # g ← ∇θ ℓ(θ; Bt ) (Compute the gradient of the loss at the current time step)
-                # m ← β1 m + (1 − β1 )g (Update the first moment estimate)
-                # v ← β2 v√+ (1 − β2 )g^2 (Update the second moment estimate)
-                # 1−(β )t
-
-                # αt ← α 1−(β1 )2t (Compute adjusted α for iteration t)
-                # m
                 
-                # (Update the parameters)
-                
-
-                # this part is the same again - or at least almost
-
-                #p.data -= lr / math.sqrt(t + 1) * grad # Update weight tensor in-place.
+                state['m'] = new_m
+                state['v'] = new_v
                 state["t"] = t + 1 # Increment iteration number.
         return loss
     

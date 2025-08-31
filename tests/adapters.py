@@ -638,6 +638,13 @@ def run_get_lr_cosine_schedule(
     Returns:
         Learning rate at the given iteration under the specified schedule.
     """
+    from cs336_basics.ron_lr_cosine_schedule import lr_cosine_schedule
+    return lr_cosine_schedule(t=it,
+                              amax=max_learning_rate,
+                              amin=min_learning_rate,
+                              Tw=warmup_iters,
+                              Tc=cosine_cycle_iters
+                              )
     raise NotImplementedError
 
 
