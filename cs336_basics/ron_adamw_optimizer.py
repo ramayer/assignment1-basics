@@ -32,7 +32,7 @@ class AdamW(torch.optim.Optimizer):
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
-    def step(self, closure: Optional[Callable] = None) -> float:
+    def step(self, closure: Optional[Callable] = None) -> float|None: # type: ignore
         #print("in step")
         loss = None if closure is None else closure()
 
